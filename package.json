@@ -1,6 +1,6 @@
 {
   "name": "@civ-clone/base-unit-veteran-promotion",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Promotion after a win: the winner of a battle may become a veteran, with a chance the game can set, and a Promoted rule for the notice.",
   "repository": "git@github.com:civ-clone/base-unit-veteran-promotion.git",
   "keywords": [
