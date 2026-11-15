@@ -17,7 +17,8 @@ Deep-import the modules; there is no index.
   - The chance is the first `PromotionChance` answer that isn't `undefined`; with none, `strengthChance` (below). The
     strengths are `strengths(attacker, defender, action)`,
     by default `attackStrengths`: core-unit's `strength`, the attack times `min(1, moves)`, as base-unit-action-attack
-    fights.
+    fights. A game that fights with base-combat-rounds passes its `roundsStrengths(ruleRegistry)` instead, so the
+    chance also sees what `CombatModifiers` rules change.
   - The rule has `High` priority, so it reads the strengths before a game's own `Defeated` rules destroy the loser and
     take its improvements. A game whose destroying rule is `High` too registers this one first.
 - `lib/Rules`:

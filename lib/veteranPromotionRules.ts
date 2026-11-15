@@ -41,7 +41,8 @@ export interface VeteranPromotionOptions {
   canPromote?: (unit: Unit) => boolean;
   /**
    * The strengths the battle was fought at: by default `strength`'s, with the attack scaled by the share of a full
-   *  attack the attacker had the moves for, as base-unit-action-attack fights it.
+   *  attack the attacker had the moves for, as base-unit-action-attack fights it. A game that fights with
+   *  base-combat-rounds passes its `roundsStrengths`, which also applies `CombatModifiers`.
    */
   strengths?: BattleStrengths;
   /**
