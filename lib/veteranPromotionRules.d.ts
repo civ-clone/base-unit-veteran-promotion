@@ -27,6 +27,11 @@ export interface VeteranPromotionOptions {
    *  attack the attacker had the moves for, as base-unit-action-attack fights it.
    */
   strengths?: BattleStrengths;
+  /**
+   * How many whole steps a strength of 1 counts as when the chance is worked out (see `strengthChance`), as
+   *  base-combat-rounds' `strengthScale` rolls them.
+   */
+  strengthScale: number;
 }
 /**
  * The strengths of a battle as `Attack` fought it: `strength`'s attack and defence, the attack times
@@ -36,13 +41,16 @@ export declare const attackStrengths: (
   ruleRegistry: RuleRegistry
 ) => BattleStrengths;
 /**
- * The loser's strength over both sides' (OpenCiv2, `unit_resolve_attack_veterans`): the weaker the loser, the less a
- *  win teaches. 0 when neither side had any strength.
+ * The chance of promotion for the winner (OpenCiv2, `unit_resolve_attack_veterans`): with the strengths as whole
+ *  numbers at `strengthScale` steps to 1 (truncated), a roll below `A + D` that is at most the loser's strength, so
+ *  `(loser + 1) / (A + D)`: the weaker the loser, the less a win teaches. Always when `A + D` is 1 or less, where the
+ *  original rolls 0.
  */
 export declare const strengthChance: (
   attack: number,
   defence: number,
-  attackerWon: boolean
+  attackerWon: boolean,
+  strengthScale: number
 ) => number;
 /** The defeat came from a battle: `action` is one side's attack on the other. */
 export declare const isBattle: (
@@ -64,7 +72,13 @@ export declare const veteranPromotionRules: (
     ruleRegistry,
     unitImprovementRegistry,
     randomNumberGenerator,
-  }?: VeteranPromotionDependencies,
-  { id, Improvement, canPromote, strengths }?: VeteranPromotionOptions
+  }: VeteranPromotionDependencies | undefined,
+  {
+    id,
+    Improvement,
+    canPromote,
+    strengths,
+    strengthScale,
+  }: VeteranPromotionOptions
 ) => Defeated[];
 export default veteranPromotionRules;

@@ -112,7 +112,7 @@ const setUp = (...values: number[]) => {
     ),
     ...veteranPromotionRules(
       { ruleRegistry, unitImprovementRegistry, randomNumberGenerator: rng },
-      { id: 'test:unit/defeated/promotion' }
+      { id: 'test:unit/defeated/promotion', strengthScale: 8 }
     )
   );
 
@@ -146,15 +146,22 @@ const setUp = (...values: number[]) => {
 
 describe('veteranPromotionRules', (): void => {
   describe('strengthChance', (): void => {
-    it("should be the loser's strength over both sides' (`unit_resolve_attack_veterans`)", (): void => {
-      expect(strengthChance(3, 1, true)).to.equal(1 / 4);
-      expect(strengthChance(3, 1, false)).to.equal(3 / 4);
-      expect(strengthChance(0, 0, true)).to.equal(0);
+    it('should be (loser + 1) / (A + D) over whole ×8 strengths, as `rand % (A + D) <= loser` (`unit_resolve_attack_veterans`)', (): void => {
+      expect(strengthChance(1, 1, true, 8)).to.equal(9 / 16);
+      expect(strengthChance(3, 1, true, 8)).to.equal(9 / 32);
+      expect(strengthChance(3, 1, false, 8)).to.equal(25 / 32);
+      // 1.4 × 8 = 11.2 → 11.
+      expect(strengthChance(1.4, 1, true, 8)).to.equal(9 / 19);
+    });
+
+    it('should always promote when A + D is 1 or less, where the original rolls 0', (): void => {
+      expect(strengthChance(0, 0, true, 8)).to.equal(1);
+      expect(strengthChance(0.125, 0, true, 8)).to.equal(1);
     });
   });
 
-  it('should promote an attacker that beats a weaker defender a quarter of the time (3 v 1)', (): void => {
-    const lucky = setUp(0.2),
+  it('should promote an attacker that beats a weaker defender 9 times in 32 (3 v 1)', (): void => {
+    const lucky = setUp(0.28),
       winner = lucky.unit(lucky.from, 3, 1),
       loser = lucky.unit(lucky.to, 1, 1),
       action = lucky.attack(winner, true);
@@ -162,13 +169,13 @@ describe('veteranPromotionRules', (): void => {
     action.perform();
 
     expect(lucky.veteran(winner)).to.equal(true);
-    expect(lucky.draws).to.deep.equal([0.2]);
+    expect(lucky.draws).to.deep.equal([0.28]);
     expect(lucky.events).to.deep.equal([
       ['promoted', winner, loser, action],
       ['destroyed', loser],
     ]);
 
-    const unlucky = setUp(0.25),
+    const unlucky = setUp(0.29),
       other = unlucky.unit(unlucky.from, 3, 1);
 
     unlucky.unit(unlucky.to, 1, 1);
@@ -177,7 +184,7 @@ describe('veteranPromotionRules', (): void => {
     expect(unlucky.veteran(other)).to.equal(false);
   });
 
-  it("should promote a defender that wins with the attacker's share (3 v 1: three quarters)", (): void => {
+  it("should promote a defender that wins with the attacker's share (3 v 1: 25 in 32)", (): void => {
     const { attack, draws, from, to, unit, veteran } = setUp(0.7),
       attacker = unit(from, 3, 1),
       defender = unit(to, 1, 1);
@@ -189,9 +196,9 @@ describe('veteranPromotionRules', (): void => {
   });
 
   it("should read the loser's strength before a game's own rules destroy it", (): void => {
-    // A veteran defender (1 × 1.5) loses to 1.5: a chance of 0.5, where after the loser lost its improvements it would be 0.4.
+    // A veteran defender (1 × 1.5) loses to 1.5: 13 in 24, where after the loser lost its improvements it would be 9 in 20.
     const { attack, from, to, unit, unitImprovementRegistry, veteran } =
-        setUp(0.45),
+        setUp(0.5),
       attacker = unit(from, 1.5, 1),
       defender = unit(to, 1, 1);
 
@@ -203,8 +210,8 @@ describe('veteranPromotionRules', (): void => {
   });
 
   it('should scale the attack by the share of a move the attacker had', (): void => {
-    // 2 attack with half a move fights at 1, against 1: the defender wins with a chance of 1 / 2, not 2 / 3.
-    const { attack, from, to, unit, veteran } = setUp(0.55),
+    // 2 attack with half a move fights at 1, against 1: the defender wins with a chance of 9 in 16, not 17 in 24.
+    const { attack, from, to, unit, veteran } = setUp(0.6),
       attacker = unit(from, 2, 1, 0.5),
       defender = unit(to, 1, 1);
 

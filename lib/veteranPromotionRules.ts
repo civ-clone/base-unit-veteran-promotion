@@ -44,6 +44,11 @@ export interface VeteranPromotionOptions {
    *  attack the attacker had the moves for, as base-unit-action-attack fights it.
    */
   strengths?: BattleStrengths;
+  /**
+   * How many whole steps a strength of 1 counts as when the chance is worked out (see `strengthChance`), as
+   *  base-combat-rounds' `strengthScale` rolls them.
+   */
+  strengthScale: number;
 }
 
 /**
@@ -62,21 +67,26 @@ export const attackStrengths =
   };
 
 /**
- * The loser's strength over both sides' (OpenCiv2, `unit_resolve_attack_veterans`): the weaker the loser, the less a
- *  win teaches. 0 when neither side had any strength.
+ * The chance of promotion for the winner (OpenCiv2, `unit_resolve_attack_veterans`): with the strengths as whole
+ *  numbers at `strengthScale` steps to 1 (truncated), a roll below `A + D` that is at most the loser's strength, so
+ *  `(loser + 1) / (A + D)`: the weaker the loser, the less a win teaches. Always when `A + D` is 1 or less, where the
+ *  original rolls 0.
  */
 export const strengthChance = (
   attack: number,
   defence: number,
-  attackerWon: boolean
+  attackerWon: boolean,
+  strengthScale: number
 ): number => {
-  const total = attack + defence;
+  const attackSteps = Math.max(0, Math.trunc(attack * strengthScale)),
+    defenceSteps = Math.max(0, Math.trunc(defence * strengthScale)),
+    total = attackSteps + defenceSteps;
 
-  if (!(total > 0)) {
-    return 0;
+  if (!(total > 1)) {
+    return 1;
   }
 
-  return Math.min(1, Math.max(0, (attackerWon ? defence : attack) / total));
+  return Math.min(1, ((attackerWon ? defenceSteps : attackSteps) + 1) / total);
 };
 
 /** The defeat came from a battle: `action` is one side's attack on the other. */
@@ -103,7 +113,8 @@ export const veteranPromotionRules = (
     Improvement = Veteran,
     canPromote = (unit: Unit): boolean => !unit.hasTrait(SingleUse),
     strengths = attackStrengths(ruleRegistry),
-  }: VeteranPromotionOptions = {}
+    strengthScale,
+  }: VeteranPromotionOptions
 ): Defeated[] => {
   const promoted = (unit: Unit): boolean =>
     unitImprovementRegistry
@@ -136,7 +147,7 @@ export const veteranPromotionRules = (
               ? strengths(winner, loser, action)
               : strengths(loser, winner, action);
 
-          chance = strengthChance(attack, defence, attackerWon);
+          chance = strengthChance(attack, defence, attackerWon, strengthScale);
         }
 
         if (!(chance > 0)) {
